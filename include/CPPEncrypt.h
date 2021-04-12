@@ -1,0 +1,4 @@
+#ifndef INCLUDE_CPP_ENCRYPT_H
+#define INCLUDE_CPP_ENCRYPT_H
+
+#endif
