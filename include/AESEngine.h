@@ -5,7 +5,9 @@
 
 #include "CPPCrypto.h"
 
-
+/**
+ * Different options for AES keytype
+ * */
 enum class AESKeyType {
     AES_KEY128,
     AES_KEY256
@@ -117,10 +119,18 @@ struct AESKey {
  * */
 class AESEngine : CryptoEngine { 
     public:
-        AESEngine(AESKey&) {
+        /**
+         * AES Engine constructor
+         * TRANSFERS OWNERSHIP of AES KEY
+         * @param key a dynamically allocated AES key
+         * */
+        AESEngine(AESKey* key) 
+            :key(key)
+        {
         }
 
         ~AESEngine() {
+            delete key;
         }
 
         /**
@@ -134,6 +144,7 @@ class AESEngine : CryptoEngine {
         void decryptText(const std::string& text, std::string& plainText);
 
     private:
+        AESKey* key;
 };
 
 #endif
