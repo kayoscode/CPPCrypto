@@ -6,5 +6,9 @@
 
 #IncludeRegexTransform: 
 
+../include/CPPEncrypt.h
+
 /home/bryce/Documents/HTTCPP/CPPEncrypt/src/CPPEncrypt.cpp
+CPPEncrypt.h
+/home/bryce/Documents/HTTCPP/CPPEncrypt/src/CPPEncrypt.h
 

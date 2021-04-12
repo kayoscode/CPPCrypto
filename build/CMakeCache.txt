@@ -215,12 +215,6 @@ CPPEncrypt_BINARY_DIR:STATIC=/home/bryce/Documents/HTTCPP/CPPEncrypt/build
 //Value Computed by CMake
 CPPEncrypt_SOURCE_DIR:STATIC=/home/bryce/Documents/HTTCPP/CPPEncrypt
 
-//Value Computed by CMake
-HTTCPP_BINARY_DIR:STATIC=/home/bryce/Documents/HTTCPP/CPPEncrypt/build
-
-//Value Computed by CMake
-HTTCPP_SOURCE_DIR:STATIC=/home/bryce/Documents/HTTCPP/CPPEncrypt
-
 
 ########################
 # INTERNAL cache entries
