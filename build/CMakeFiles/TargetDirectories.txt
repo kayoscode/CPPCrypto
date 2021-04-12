@@ -1,3 +1,0 @@
-/home/bryce/Documents/HTTCPP/CPPEncrypt/build/CMakeFiles/rebuild_cache.dir
-/home/bryce/Documents/HTTCPP/CPPEncrypt/build/CMakeFiles/edit_cache.dir
-/home/bryce/Documents/HTTCPP/CPPEncrypt/build/CMakeFiles/CPPEncrypt.dir
