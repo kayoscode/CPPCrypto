@@ -1,2 +1,0 @@
-/usr/bin/ar qc libCPPCrypto.a  CMakeFiles/CPPCrypto.dir/src/AESEngine.cpp.o CMakeFiles/CPPCrypto.dir/src/RSAEngine.cpp.o CMakeFiles/CPPCrypto.dir/src/SecureRandom.cpp.o
-/usr/bin/ranlib libCPPCrypto.a
