@@ -4,7 +4,7 @@
 
 typedef std::mt19937 rng;
 std::random_device rd;
-std::uniform_int_distribution<char> distribution(0, 255);
+std::uniform_int_distribution<int> distribution(0, 255);
 
 //MEH this isn't a secure random number generator but it will work for now. Let's fix this later
 //TODO!!!! XD

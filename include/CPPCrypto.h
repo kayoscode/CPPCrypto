@@ -6,6 +6,17 @@
 #include "SecureRandom.h"
 
 /**
+ * Mode of operation for block cipher
+ * @author Bryce Young
+ * */
+enum class BlockCipherMode {
+    ECB,
+    CBC,
+    CFB,
+    OFB
+};
+
+/**
  * Basic interface for implementing cryptographic engines
  * AES, etc
  * @author Bryce Young April 12, 2021
@@ -25,7 +36,7 @@ class CryptoEngine {
          * @param key key to encrypt plaintext
          * @param keyLen length of the key in bytes
          * */
-        virtual void encyrptText(const std::string& text, std::string& cipherText, char* key, int keyLen) = 0;
+        virtual void encyrptText(const std::string& text, std::string& cipherText) = 0;
 
         /**
          * Takes ciphertext and generates plaintext
@@ -34,7 +45,7 @@ class CryptoEngine {
          * @param key key to encrypt plaintext
          * @param keyLen length of the key in bytes
          * */
-        virtual void decryptText(const std::string& text, std::string& plainText, char* key, int keyLen) = 0;
+        virtual void decryptText(const std::string& text, std::string& plainText) = 0;
 
     private:
 };

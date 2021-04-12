@@ -10,6 +10,7 @@
  * */
 enum class AESKeyType {
     AES_KEY128,
+    AES_KEY196,
     AES_KEY256
 };
 
@@ -21,15 +22,15 @@ struct AESKey {
     /**
      * Initializes a new AES key given a length
      * */
-    AESKey(AESKeyType type) 
+    AESKey(AESKeyType type, BlockCipherMode mode = BlockCipherMode::ECB) 
         :type(type)
     {
         switch(type) {
             case AESKeyType::AES_KEY128:
-                generateRandomSequence(key, 16);
+                generateRandomSequence((char*)key, 16);
                 break;
             case AESKeyType::AES_KEY256:
-                generateRandomSequence(key, 32);
+                generateRandomSequence((char*)key, 32);
                 break;
             default:
                 //shouldn't get here
@@ -52,7 +53,7 @@ struct AESKey {
      * @param key the data for the new key
      * @param type the type of key for AES
      * */
-    AESKey(char* key, AESKeyType type) 
+    AESKey(unsigned char* key, AESKeyType type) 
         :type(type)
     {
         copyKey(key, type);
@@ -69,7 +70,7 @@ struct AESKey {
      * Returns the key but you can't modify it
      * @return const key
      * */
-    const char* getKey() const {
+    const unsigned char* getKey() const {
         return key;
     }
 
@@ -87,13 +88,21 @@ struct AESKey {
         return 0;
     }
 
+    /**
+     * Initialization vector for modes besides ECB
+     * */
+    void setInitVector(unsigned char* initVector) {
+        copyKey(initVector, type);
+    }
+
     private:
         //the key type len
         AESKeyType type;
 
         //maybe slightly inefficient but it won't make a difference in any application
         //speed is prio here rather than allocating less data dynamically
-        char key[32];
+        unsigned char key[32] = { 0 };
+        unsigned char initVector[32] = { 0 };
 
         /**
          * Copies the key over 
@@ -101,7 +110,7 @@ struct AESKey {
          * @param data the raw data for the key
          * @param type the type of the new key
          * */
-        void copyKey(const char* data, AESKeyType type) {
+        void copyKey(const unsigned char* data, AESKeyType type) {
             switch(type) {
                 case AESKeyType::AES_KEY128:
                     memcpy(this->key, data, sizeof(char) * 16);
