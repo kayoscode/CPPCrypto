@@ -8,8 +8,18 @@ file(GLOB SRC
     "include/*.h"
 )
 
+file(GLOB AESTest
+    "tests/AESTest.cpp"    
+)
+
 add_library(${PROJ_NAME}
     "${SRC}"
 )
 
-target_include_directories("${PROJ_NAME}" PRIVATE ${PROJECT_SOURCE_DIR}/./include)
+add_executable(AESTest
+    "${AESTest}"
+)
+
+target_link_libraries(AESTest ${PROJ_NAME})
+
+include_directories(${PROJECT_SOURCE_DIR}/./include)

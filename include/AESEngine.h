@@ -39,6 +39,14 @@ struct AESKey {
     }
 
     /**
+     * Updates the value of the key
+     * */
+    void setKeyData(unsigned char* key, AESKeyType type) {
+        this->type = type;
+        copyKey(key, type);
+    }
+
+    /**
      * Copy constructor
      * @param cpy the key to copy from
      * */
