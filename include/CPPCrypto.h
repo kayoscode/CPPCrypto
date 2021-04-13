@@ -30,13 +30,20 @@ class CryptoEngine {
         }
 
         /**
+         * Returns the size of the ciphertext
+         * for this cipher engine
+         * @return the size of the cipher text in bytes
+         * */
+        virtual int getOutputTextSize(int textSize) = 0;
+
+        /**
          * Takes plaintext text and generates cipher text
          * @param text the plaintext
          * @param cipherText output result of the function passed as reference to remove copies
          * @param key key to encrypt plaintext
          * @param keyLen length of the key in bytes
          * */
-        virtual void encyrptText(const std::string& text, std::string& cipherText) = 0;
+        virtual void encyrptText(char* text, int textSize, char* cipherText) = 0;
 
         /**
          * Takes ciphertext and generates plaintext
@@ -45,7 +52,12 @@ class CryptoEngine {
          * @param key key to encrypt plaintext
          * @param keyLen length of the key in bytes
          * */
-        virtual void decryptText(const std::string& text, std::string& plainText) = 0;
+        virtual void decryptText(char* cipherText, int cipherTextSize, char* output) = 0;
+
+        /**
+         * Prints a string's hex value
+         * */
+        void printHex(char* hex, int size);
 
     private:
 };

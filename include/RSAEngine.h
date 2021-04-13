@@ -7,7 +7,7 @@
  * RSA encryption impl
  * @author Bryce Young April 12, 2021
  * */
-class RSAEngine : CryptoEngine {
+class RSAEngine : public CryptoEngine {
     public:
         RSAEngine() {
         }

@@ -126,7 +126,7 @@ struct AESKey {
  * Implements AES encryption
  * @author Bryce Young April 12, 2021
  * */
-class AESEngine : CryptoEngine { 
+class AESEngine : public CryptoEngine { 
     public:
         /**
          * AES Engine constructor
@@ -142,15 +142,17 @@ class AESEngine : CryptoEngine {
             delete key;
         }
 
+        int getOutputTextSize(int textSize);
+
         /**
          * AES implementation generating ciphertext
          * */
-        void encyrptText(const std::string& text, std::string& cipherText);
+        void encyrptText(char* plainText, int plainTextSize, char* cipherText);
 
         /**
          * AES implementation inverting cipher process
          * */
-        void decryptText(const std::string& text, std::string& plainText);
+        void decryptText(char* cipherText, int cipherTextSize, char* plainText);
 
     private:
         AESKey* key;
