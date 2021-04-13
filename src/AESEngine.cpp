@@ -2,6 +2,42 @@
 
 #include "AESEngine.h"
 
+//check for hardware support of AES
+#ifdef __x86_64__
+    #include <immintrin.h>
+    #if defined(__WIN32) || defined(WIN32)
+        #include <intrin.h>
+        #define USE_AES_HW
+    #elif defined(__unix__) || defined(__unix)
+        #include <cpuid.h>
+        #define USE_AES_HW
+    #endif
+#endif
+
+//https://www.felixcloutier.com/x86/cpuid
+//check for hardware support of AES-NI from documentation listed above
+bool checkAESHwSupport() {
+    #ifdef USE_AES_HW
+        #if defined(__WIN32) || defined(WIN32)
+            //windows check
+            int cpuInfo[4] = { -1 };
+            __cpuid(cpuInfo, 1);
+            return ((cpuInfo[2] & 0x2000000) != 0);
+        #elif defined(__unix__) || defined(__unix)
+            //unix
+            unsigned int ax = 0, bx = 0, cx = 0, dx = 0;
+            ax = 1;
+            __get_cpuid(1, &ax, &bx, &cx, &dx);
+
+            return (cx & 0x2000000) != 0;
+        #endif
+    #else
+        return false;
+    #endif
+    
+    return false;
+}
+
 //quick conversions from hex character to a value
 char hex2Number[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -660,10 +696,18 @@ void AESEncrypt128(char* plainText, int plainTextSize, const unsigned char* key,
     }
 }
 
+void AESEncrypt128_hw(char* plainText, int plainTextSize, const unsigned char* key, char* output) {
+}
+
 void AESEngine::encyrptText(char* plainText, int plainTextSize, char* buffer) {
     switch(key->getType()) {
         case AESKeyType::AES_KEY128:
-            AESEncrypt128(plainText, plainTextSize, key->getKey(), buffer);
+            if(checkAESHwSupport()) {
+                AESEncrypt128_hw(plainText, plainTextSize, key->getKey(), buffer);
+            }
+            else {
+                AESEncrypt128(plainText, plainTextSize, key->getKey(), buffer);
+            }
             break;
         case AESKeyType::AES_KEY256:
             break;
@@ -673,6 +717,7 @@ void AESEngine::encyrptText(char* plainText, int plainTextSize, char* buffer) {
 void AESEngine::decryptText(char* cipherText, int cipherTextSize, char* output) {
     switch(key->getType()) {
         case AESKeyType::AES_KEY128:
+            //AES 128 bit software implementation
             AESDecrypt128(cipherText, cipherTextSize, key->getKey(), output);
             break;
         case AESKeyType::AES_KEY256:
