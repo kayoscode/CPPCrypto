@@ -10,6 +10,7 @@
  * */
 enum class AESKeyType {
     AES_KEY128,
+    AES_KEY196,
     AES_KEY256
 };
 

@@ -696,7 +696,118 @@ void AESEncrypt128(char* plainText, int plainTextSize, const unsigned char* key,
     }
 }
 
-void AESEncrypt128_hw(char* plainText, int plainTextSize, const unsigned char* key, char* output) {
+//assist in AES128 bit key gen
+inline __m128i aes128KeyAssist(__m128i temp1, __m128i temp2) { 
+    __m128i temp3;     
+
+    temp2 = _mm_shuffle_epi32 (temp2 ,0xff);     
+    temp3 = _mm_slli_si128 (temp1, 0x4);     
+    temp1 = _mm_xor_si128 (temp1, temp3);     
+    temp3 = _mm_slli_si128 (temp3, 0x4);     
+    temp1 = _mm_xor_si128 (temp1, temp3);     
+    temp3 = _mm_slli_si128 (temp3, 0x4);     
+    temp1 = _mm_xor_si128 (temp1, temp3);       
+    temp1 = _mm_xor_si128 (temp1, temp2);     
+
+    return temp1;     
+}
+
+//from implementation in: https://www.intel.com/content/dam/doc/white-paper/advanced-encryption-standard-new-instructions-set-paper.pdf
+//yes I could have used my software scheduler, but that would potentially leave open known side channel vulnerabilties: I want to keep that out of the hw impl
+void AESGenKeys128_hw(const unsigned char* k, __m128i* keys) {
+    __m128i temp1, temp2; 
+    __m128i *Key_Schedule = (__m128i*)keys;     
+
+    temp1 = _mm_loadu_si128((__m128i*)k);     
+    Key_Schedule[0] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1 ,0x1);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[1] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x2);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[2] = temp1;       
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x4);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[3] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x8);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[4] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x10);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[5] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x20);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[6] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x40);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[7] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x80);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[8] = temp1;         
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x1b);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[9] = temp1;     
+    temp2 = _mm_aeskeygenassist_si128 (temp1,0x36);     
+    temp1 = aes128KeyAssist(temp1, temp2);     
+    Key_Schedule[10] = temp1;
+}
+
+void AESEncrypt128_hw(char* plainText, int plainTextSize, const unsigned char* k, char* output) {
+    //gen keys
+    __m128i roundKeys[ROUNDS128];
+    AESGenKeys128_hw(k, roundKeys);
+
+    //encrypt text using hw mneumonics
+    __m128i temp;
+    int len = (plainTextSize / 16) + (plainTextSize % 16 != 0);
+
+    //currently only ECB mode
+    for(int i = 0; i < len; ++i) {
+        unsigned char block[16];
+        prepareAESBlock(plainText, plainTextSize, block, i, 16);
+
+        temp = _mm_loadu_si128(&((__m128i*)block)[0]);
+        temp = _mm_xor_si128(temp, roundKeys[0]);
+
+        for(int j = 1; j < ROUNDS128 - 1;  ++j) {
+            temp = _mm_aesenc_si128(temp, roundKeys[j]);
+        }
+
+        temp = _mm_aesenclast_si128(temp, roundKeys[ROUNDS128 - 1]);
+        _mm_storeu_si128(&((__m128i*)output)[i], temp);
+    }
+}
+
+void AESDecrypt128_hw(char* cipherText, int cipherTextSize, const unsigned char* key, char* output) {
+   //gen keys
+    __m128i roundKeys[ROUNDS128];
+    AESGenKeys128_hw(key, roundKeys);
+
+    //encrypt text using hw mneumonics
+    __m128i temp;
+    __m128i nill;
+    nill[0] = 0;
+    nill[1] = 0;
+
+    int len = (cipherTextSize / 16) + (cipherTextSize % 16 != 0);
+
+    //currently only ECB mode
+    for(int i = 0; i < len; ++i) {
+        unsigned char block[16];
+        prepareAESBlock(cipherText, cipherTextSize, block, i, 16);
+
+        temp = _mm_loadu_si128(&((__m128i*)block)[0]);
+        temp = _mm_xor_si128(temp, roundKeys[ROUNDS128 - 1]);
+
+        for(int j = ROUNDS128 - 2; j >= 1; --j) {
+            __m128i decKey = _mm_aesenclast_si128(roundKeys[j], nill);
+            decKey = _mm_aesdec_si128(decKey, nill);
+            temp = _mm_aesdec_si128(temp, decKey);
+        }
+
+        temp = _mm_aesdeclast_si128(temp, roundKeys[0]);
+        _mm_storeu_si128(&((__m128i*)output)[i], temp);
+    }
 }
 
 void AESEngine::encyrptText(char* plainText, int plainTextSize, char* buffer) {
@@ -718,7 +829,12 @@ void AESEngine::decryptText(char* cipherText, int cipherTextSize, char* output) 
     switch(key->getType()) {
         case AESKeyType::AES_KEY128:
             //AES 128 bit software implementation
-            AESDecrypt128(cipherText, cipherTextSize, key->getKey(), output);
+            if(checkAESHwSupport()) {
+                AESDecrypt128_hw(cipherText, cipherTextSize, key->getKey(), output);
+            }
+            else {
+                AESDecrypt128(cipherText, cipherTextSize, key->getKey(), output);
+            }
             break;
         case AESKeyType::AES_KEY256:
             break;

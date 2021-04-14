@@ -37,9 +37,10 @@ void testAES128() {
     assert(memcmp(expectedCipherText, encText, cipherTextSize) == 0);
     std::cout << "TEST PASSED!\n";
 
-    std::cout << "Testing decryption\n";
+    std::cout << "Testing decryption\nDeciphered text:";
     //make sure it decrypts to the starting text
     aes.decryptText(encText, cipherTextSize, decText);
+    std::cout << decText << "\n";
     assert(memcmp(decText, plainText, plainTextSize) == 0);
     std::cout << "TEST PASSED!\n";
 
@@ -68,8 +69,9 @@ void testAES128() {
     std::cout << "TEST PASSED!\n";
 
     //test decryption
-    std::cout << "Testing decryption\n";
+    std::cout << "Testing decryption\nDeciphered Text";
     aes.decryptText(encText, cipherTextSize, decText);
+    std::cout << decText << "\n";
     assert(memcmp(decText, plainText, plainTextSize) == 0);
     std::cout << "TEST PASSED!\n";
 
@@ -83,7 +85,8 @@ void testAES128() {
     aes2.printHex(encText, cipherTextSize);
     aes2.decryptText(encText, cipherTextSize, decText);
 
-    std::cout << "Testing decryption\n";
+    std::cout << "Testing decryption\nDeciphered Text:";
+    std::cout << decText << "\n";
     assert(memcmp(decText, plainText, plainTextSize) == 0);
     std::cout << "TEST PASSED!\n";
 
