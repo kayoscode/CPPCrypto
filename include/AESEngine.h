@@ -10,7 +10,7 @@
  * */
 enum class AESKeyType {
     AES_KEY128,
-    AES_KEY196,
+    AES_KEY192,
     AES_KEY256
 };
 
@@ -23,14 +23,35 @@ struct AESKey {
      * Initializes a new AES key given a length
      * */
     AESKey(AESKeyType type, BlockCipherMode mode = BlockCipherMode::ECB) 
-        :type(type)
+        :type(type),
+        mode(mode)
     {
+        bool genInitVector = false;
+        if(mode == BlockCipherMode::CBC) {
+            genInitVector = true;
+        }
+
         switch(type) {
             case AESKeyType::AES_KEY128:
                 generateRandomSequence((char*)key, 16);
+
+                if(genInitVector) {
+                    generateRandomSequence((char*)initVector, 16);
+                }
+                break;
+            case AESKeyType::AES_KEY192:
+                generateRandomSequence((char*)key, 24);
+
+                if(genInitVector) {
+                    generateRandomSequence((char*)initVector, 24);
+                }
                 break;
             case AESKeyType::AES_KEY256:
                 generateRandomSequence((char*)key, 32);
+
+                if(genInitVector) {
+                    generateRandomSequence((char*)initVector, 32);
+                }
                 break;
             default:
                 //shouldn't get here
@@ -41,9 +62,10 @@ struct AESKey {
     /**
      * Updates the value of the key
      * */
-    void setKeyData(unsigned char* key, AESKeyType type) {
+    void setKeyData(unsigned char* key, AESKeyType type, BlockCipherMode mode = BlockCipherMode::ECB) {
         this->type = type;
-        copyKey(key, type);
+        this->mode = mode;
+        copyData(key, this->key, type);
     }
 
     /**
@@ -51,20 +73,32 @@ struct AESKey {
      * @param cpy the key to copy from
      * */
     AESKey(const AESKey& cpy) 
-        :type(cpy.type)
+        :type(cpy.type),
+        mode(cpy.mode)
     {
-        copyKey(cpy.key, cpy.type);
+        copyData(cpy.key, this->key, cpy.type);
+        copyData(cpy.initVector, this->initVector, cpy.type);
     }
 
     /**
      * Initailizes a new key with set data
      * @param key the data for the new key
      * @param type the type of key for AES
+     * @param mode the mode of operation for this AES block cipher
      * */
-    AESKey(unsigned char* key, AESKeyType type) 
-        :type(type)
+    AESKey(unsigned char* key, AESKeyType type, BlockCipherMode mode = BlockCipherMode::ECB) 
+        :type(type),
+        mode(mode)
     {
-        copyKey(key, type);
+        copyData(key, this->key, type);
+    }
+
+    BlockCipherMode getMode() {
+        return mode;
+    }
+    
+    void setMode(BlockCipherMode mode) {
+        this->mode = mode;
     }
 
     /**
@@ -89,6 +123,8 @@ struct AESKey {
         switch(type) {
             case AESKeyType::AES_KEY128:
                 return 16;
+            case AESKeyType::AES_KEY192:
+                return 24;
             case AESKeyType::AES_KEY256:
                 return 32;
         }
@@ -100,12 +136,20 @@ struct AESKey {
      * Initialization vector for modes besides ECB
      * */
     void setInitVector(unsigned char* initVector) {
-        copyKey(initVector, type);
+        copyData(initVector, this->initVector, type);
+    }
+
+    /**
+     * Returns a const pointer to the init vector
+     * */
+    const unsigned char* getInitVector() const {
+        return initVector;
     }
 
     private:
         //the key type len
         AESKeyType type;
+        BlockCipherMode mode;
 
         //maybe slightly inefficient but it won't make a difference in any application
         //speed is prio here rather than allocating less data dynamically
@@ -118,13 +162,16 @@ struct AESKey {
          * @param data the raw data for the key
          * @param type the type of the new key
          * */
-        void copyKey(const unsigned char* data, AESKeyType type) {
+        void copyData(const unsigned char* data, unsigned char* dest, AESKeyType type) {
             switch(type) {
                 case AESKeyType::AES_KEY128:
-                    memcpy(this->key, data, sizeof(char) * 16);
+                    memcpy(dest, data, sizeof(char) * 16);
                 break;
+                case AESKeyType::AES_KEY192:
+                    memcpy(dest, data, sizeof(char) * 24);
+                    break;
                 case AESKeyType::AES_KEY256:
-                    memcpy(this->key, data, sizeof(char) * 32);
+                    memcpy(dest, data, sizeof(char) * 32);
                 break;
             }
         }
@@ -141,8 +188,9 @@ class AESEngine : public CryptoEngine {
          * TRANSFERS OWNERSHIP of AES KEY
          * @param key a dynamically allocated AES key
          * */
-        AESEngine(AESKey* key) 
-            :key(key)
+        AESEngine(AESKey* key, bool forceSoftwareAES = false) 
+            :key(key),
+            forceSoftwareAES(forceSoftwareAES)
         {
         }
 
@@ -162,8 +210,14 @@ class AESEngine : public CryptoEngine {
          * */
         void decryptText(char* cipherText, int cipherTextSize, char* plainText);
 
+        /**
+         * returns whether this computer supports the hardware implementation of AES
+         * */
+        static bool checkAESHardwareSupport();
+
     private:
         AESKey* key;
+        bool forceSoftwareAES;
 };
 
 #endif

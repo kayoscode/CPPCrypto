@@ -12,8 +12,6 @@
 enum class BlockCipherMode {
     ECB,
     CBC,
-    CFB,
-    OFB
 };
 
 /**
@@ -57,7 +55,7 @@ class CryptoEngine {
         /**
          * Prints a string's hex value
          * */
-        void printHex(char* hex, int size);
+        static void printHex(char* hex, int size);
 
     private:
 };

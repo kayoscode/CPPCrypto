@@ -634,19 +634,38 @@ static inline void prepareAESBlock(char* plainText, int plainTextSize, unsigned 
     }
 }
 
+inline static void AESEncryptRnd128(unsigned char* state, unsigned char roundKey[16]) {
+    byteSubstitution(state);
+    shiftRows(state);
+    mixColumns(state);
+    addRoundKey(state, roundKey);
+}
+
+inline static void AESEncryptLast128(unsigned char* state, unsigned char roundKey[16]) {
+    byteSubstitution(state);
+    shiftRows(state);
+    addRoundKey(state, roundKey);
+}
+
 inline static void AESEncryptBlock128(unsigned char* state, unsigned char roundKeys[ROUNDS128][16]) {
     addRoundKey(state, roundKeys[0]);
 
     for(int i = 1; i < ROUNDS128 - 1; i++) {
-        byteSubstitution(state);
-        shiftRows(state);
-        mixColumns(state);
-        addRoundKey(state, roundKeys[i]);
+        AESEncryptRnd128(state, roundKeys[i]);
     }
 
-    byteSubstitution(state);
-    shiftRows(state);
-    addRoundKey(state, roundKeys[ROUNDS128 - 1]);
+    AESEncryptLast128(state, roundKeys[ROUNDS128 - 1]);
+}
+
+inline static void AESDecryptRnd128(unsigned char* state, unsigned char roundKey[16]) {
+    addRoundKey(state, roundKey);
+    mixColumnsInv(state);
+    shiftRowsInv(state);
+    byteSubstitutionInv(state);
+}
+
+inline static void AESDecryptLast128(unsigned char* state, unsigned char roundKey[16]) {
+    addRoundKey(state, roundKey);
 }
 
 inline static void AESDecryptBlock128(unsigned char* state, unsigned char roundKeys[ROUNDS128][16]) {
@@ -655,20 +674,17 @@ inline static void AESDecryptBlock128(unsigned char* state, unsigned char roundK
     byteSubstitutionInv(state);
 
     for(int i = ROUNDS128 - 2; i >= 1; i--) {
-        addRoundKey(state, roundKeys[i]);
-        mixColumnsInv(state);
-        shiftRowsInv(state);
-        byteSubstitutionInv(state);
+        AESDecryptRnd128(state, roundKeys[i]);
     }
-
-    addRoundKey(state, roundKeys[0]);
+    
+    AESDecryptLast128(state, roundKeys[0]);
 }
 
-void AESDecrypt128(char* text, int textSize, const unsigned char* key, char* output) {
+void AESDecrypt128ECB(char* text, int textSize, AESKey* key, char* output) {
     unsigned char state[16], roundKeys[ROUNDS128][16] = { 0 };
 
     //schedule keys
-    scheduleKeys128(key, roundKeys);
+    scheduleKeys128(key->getKey(), roundKeys);
 
     int totalBlocks = (textSize / 16) + (textSize % 16 != 0);
 
@@ -676,15 +692,51 @@ void AESDecrypt128(char* text, int textSize, const unsigned char* key, char* out
         prepareAESBlock(text, textSize, state, i, 16);
         AESDecryptBlock128(state, roundKeys);
         copyArr(state, ((unsigned char*)output) + (16 * i), 16);
-        //printArr(state, 16);
     }
 }
 
-void AESEncrypt128(char* plainText, int plainTextSize, const unsigned char* key, char* output) {
+void AESDecrypt128CBC(char* text, int textSize, AESKey* key, char* output) {
+    unsigned char state[16], roundKeys[ROUNDS128][16] = { 0 };
+    unsigned char cbcFeedback[16];
+    unsigned char data[16];
+
+    //schedule keys
+    scheduleKeys128(key->getKey(), roundKeys);
+
+    int totalBlocks = (textSize / 16) + (textSize % 16 != 0);
+
+    copyArr(key->getInitVector(), cbcFeedback, 16);
+
+    for(int i = 0; i < totalBlocks; ++i) {
+        prepareAESBlock(text, textSize, state, i, 16);
+
+        for(int j = 0; j < 4; j++) {
+            ((int*)data)[j] = ((int*)roundKeys[ROUNDS128 - 1])[j] ^ ((int*)state)[j];
+        }
+
+        shiftRowsInv(data);
+        byteSubstitutionInv(data);
+
+        for(int j = ROUNDS128 - 2; j >= 1; --j) {
+            AESDecryptRnd128(data, roundKeys[j]);
+        }
+
+        AESDecryptLast128(data, roundKeys[0]);
+
+        for(int j = 0; j < 4; j++) {
+            ((int*)data)[j] = ((int*)cbcFeedback)[j] ^ ((int*)data)[j];
+        }
+
+        copyArr(data, ((unsigned char*)output) + (16 * i), 16);
+        copyArr(state, cbcFeedback, 16);
+    }
+}
+
+void AESEncrypt128ECB(char* plainText, int plainTextSize, AESKey* key, char* output) {
     unsigned char state[16], roundKeys[ROUNDS128][16] = { 0 };
 
     //schedule all keys
-    scheduleKeys128(key, roundKeys);
+    scheduleKeys128(key->getKey(), roundKeys);
 
     //encrypt each block
     int totalBlocks = (plainTextSize / 16) + (plainTextSize % 16 != 0);
@@ -693,6 +745,35 @@ void AESEncrypt128(char* plainText, int plainTextSize, const unsigned char* key,
         prepareAESBlock(plainText, plainTextSize, state, i, 16);
         AESEncryptBlock128(state, roundKeys);
         copyArr(state, ((unsigned char*)output) + (16 * i), 16);
+    }
+}
+
+void AESEncrypt128CBC(char* plainText, int plainTextSize, AESKey* key, char* output) {
+    unsigned char state[16], roundKeys[ROUNDS128][16] = { 0 };
+    unsigned char cbcFeedback[16] = { 0 };
+
+    //schedule all keys
+    scheduleKeys128(key->getKey(), roundKeys);
+
+    int totalBlocks = (plainTextSize / 16) + (plainTextSize % 16 != 0);
+
+    copyArr(key->getInitVector(), cbcFeedback, 16);
+
+    for(int i = 0; i < totalBlocks; ++i) {
+        prepareAESBlock(plainText, plainTextSize, state, i, 16);
+
+        for(int j = 0; j < 4; j++) {
+            ((int*)cbcFeedback)[j] = ((int*)cbcFeedback)[j] ^ ((int*)state)[j];
+        }
+
+        addRoundKey(cbcFeedback, roundKeys[0]);
+
+        for(int j = 1; j < ROUNDS128 - 1; ++j) {
+            AESEncryptRnd128(cbcFeedback, roundKeys[j]);
+        }
+
+        AESEncryptLast128(cbcFeedback, roundKeys[ROUNDS128 - 1]);
+        copyArr(cbcFeedback, ((unsigned char*)output) + (16 * i), 16);
     }
 }
 
@@ -752,16 +833,16 @@ void AESGenKeys128_hw(const unsigned char* k, __m128i* keys) {
     Key_Schedule[10] = temp1;
 }
 
-void AESEncrypt128_hw(char* plainText, int plainTextSize, const unsigned char* k, char* output) {
+void AESEncrypt128_hwECB(char* plainText, int plainTextSize, AESKey* key, char* output) {
     //gen keys
     __m128i roundKeys[ROUNDS128];
-    AESGenKeys128_hw(k, roundKeys);
+    AESGenKeys128_hw(key->getKey(), roundKeys);
 
     //encrypt text using hw mneumonics
     __m128i temp;
     int len = (plainTextSize / 16) + (plainTextSize % 16 != 0);
 
-    //currently only ECB mode
+    //currently only ECB mode and CBC
     for(int i = 0; i < len; ++i) {
         unsigned char block[16];
         prepareAESBlock(plainText, plainTextSize, block, i, 16);
@@ -778,10 +859,39 @@ void AESEncrypt128_hw(char* plainText, int plainTextSize, const unsigned char* k
     }
 }
 
-void AESDecrypt128_hw(char* cipherText, int cipherTextSize, const unsigned char* key, char* output) {
+void AESEncrypt128_hwCBC(char* plainText, int plainTextSize, AESKey* key, char* output) {
+    //gen keys
+    __m128i roundKeys[ROUNDS128];
+    AESGenKeys128_hw(key->getKey(), roundKeys);
+
+    //encrypt text using hw mneumonics
+    __m128i data;
+    int len = (plainTextSize / 16) + (plainTextSize % 16 != 0);
+    
+    __m128i cbcFeedback = _mm_loadu_si128((const __m128i*)key->getInitVector());
+
+    //currently only ECB mode and CBC
+    for(int i = 0; i < len; ++i) {
+        unsigned char block[16];
+        prepareAESBlock(plainText, plainTextSize, block, i, 16);
+
+        data = _mm_loadu_si128(&((__m128i*)block)[0]);
+        cbcFeedback = _mm_xor_si128(data, cbcFeedback);
+        cbcFeedback = _mm_xor_si128(cbcFeedback, roundKeys[0]);
+
+        for(int j = 1; j < ROUNDS128 - 1;  ++j) {
+            cbcFeedback = _mm_aesenc_si128(cbcFeedback, roundKeys[j]);
+        }
+
+        cbcFeedback = _mm_aesenclast_si128(cbcFeedback, roundKeys[ROUNDS128 - 1]);
+        _mm_storeu_si128(&((__m128i*)output)[i], cbcFeedback);
+    }
+}
+
+void AESDecrypt128_hwECB(char* cipherText, int cipherTextSize, AESKey* key, char* output) {
    //gen keys
     __m128i roundKeys[ROUNDS128];
-    AESGenKeys128_hw(key, roundKeys);
+    AESGenKeys128_hw(key->getKey(), roundKeys);
 
     //encrypt text using hw mneumonics
     __m128i temp;
@@ -810,15 +920,65 @@ void AESDecrypt128_hw(char* cipherText, int cipherTextSize, const unsigned char*
     }
 }
 
+void AESDecrypt128_hwCBC(char* cipherText, int cipherTextSize, AESKey* key, char* output) {
+   //gen keys
+    __m128i roundKeys[ROUNDS128];
+    AESGenKeys128_hw(key->getKey(), roundKeys);
+
+    //encrypt text using hw mneumonics
+    __m128i data, lastinput;
+    __m128i nill;
+    nill[0] = 0;
+    nill[1] = 0;
+
+    int len = (cipherTextSize / 16) + (cipherTextSize % 16 != 0);
+    __m128i cbcFeedback = _mm_loadu_si128((const __m128i*)key->getInitVector());
+
+    //currently only ECB mode
+    for(int i = 0; i < len; ++i) {
+        unsigned char block[16];
+        prepareAESBlock(cipherText, cipherTextSize, block, i, 16);
+        lastinput = _mm_loadu_si128((__m128i*)block);
+        data = _mm_xor_si128(lastinput, roundKeys[ROUNDS128 - 1]);
+
+        for(int j = ROUNDS128 - 2; j >= 1; --j) {
+            __m128i decKey = _mm_aesenclast_si128(roundKeys[j], nill);
+            decKey = _mm_aesdec_si128(decKey, nill);
+            data = _mm_aesdec_si128(data, decKey);
+        }
+
+        data = _mm_aesdeclast_si128(data, roundKeys[0]);
+        data = _mm_xor_si128(data, cbcFeedback);
+        _mm_storeu_si128(&((__m128i*)output)[i], data);
+        cbcFeedback = lastinput;
+    }
+}
+
 void AESEngine::encyrptText(char* plainText, int plainTextSize, char* buffer) {
     switch(key->getType()) {
         case AESKeyType::AES_KEY128:
-            if(checkAESHwSupport()) {
-                AESEncrypt128_hw(plainText, plainTextSize, key->getKey(), buffer);
+            if(forceSoftwareAES || !checkAESHwSupport()) {
+                switch(key->getMode()) {
+                    case BlockCipherMode::ECB:
+                        AESEncrypt128ECB(plainText, plainTextSize, key, buffer);
+                        break;
+                    case BlockCipherMode::CBC:
+                        AESEncrypt128CBC(plainText, plainTextSize, key, buffer);
+                        break;
+                }
             }
             else {
-                AESEncrypt128(plainText, plainTextSize, key->getKey(), buffer);
+                switch(key->getMode()) {
+                    case BlockCipherMode::ECB:
+                        AESEncrypt128_hwECB(plainText, plainTextSize, key, buffer);
+                        break;
+                    case BlockCipherMode::CBC:
+                        AESEncrypt128_hwCBC(plainText, plainTextSize, key, buffer);
+                        break;
+                }
             }
+            break;
+        case AESKeyType::AES_KEY192:
             break;
         case AESKeyType::AES_KEY256:
             break;
@@ -829,12 +989,28 @@ void AESEngine::decryptText(char* cipherText, int cipherTextSize, char* output) 
     switch(key->getType()) {
         case AESKeyType::AES_KEY128:
             //AES 128 bit software implementation
-            if(checkAESHwSupport()) {
-                AESDecrypt128_hw(cipherText, cipherTextSize, key->getKey(), output);
+            if(forceSoftwareAES || !checkAESHwSupport()) {
+                switch(key->getMode()) {
+                    case BlockCipherMode::ECB:
+                        AESDecrypt128ECB(cipherText, cipherTextSize, key, output);
+                        break;
+                    case BlockCipherMode::CBC:
+                        AESDecrypt128CBC(cipherText, cipherTextSize, key, output);
+                        break;
+                }
             }
             else {
-                AESDecrypt128(cipherText, cipherTextSize, key->getKey(), output);
+                switch(key->getMode()) {
+                    case BlockCipherMode::ECB:
+                        AESDecrypt128_hwECB(cipherText, cipherTextSize, key, output);
+                        break;
+                    case BlockCipherMode::CBC:
+                        AESDecrypt128_hwCBC(cipherText, cipherTextSize, key, output);
+                        break;
+                }
             }
+            break;
+        case AESKeyType::AES_KEY192:
             break;
         case AESKeyType::AES_KEY256:
             break;
@@ -843,6 +1019,10 @@ void AESEngine::decryptText(char* cipherText, int cipherTextSize, char* output) 
 
 int AESEngine::getOutputTextSize(int textSize) {
     return ((textSize / 16) + (textSize % 16 != 0)) * 16;
+}
+
+bool AESEngine::checkAESHardwareSupport() {
+    return ::checkAESHwSupport();
 }
 
 void CryptoEngine::printHex(char* hex, int size) {
