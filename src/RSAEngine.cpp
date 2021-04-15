@@ -1,9 +1,14 @@
 #include "RSAEngine.h"
 
-void RSAEngine::encyrptText(const std::string& plainText, std::string& cipherText) {
+//placeholder
+int RSAEngine::getOutputTextSize(int plainTextSize) {
+    return plainTextSize;
+}
+
+void RSAEngine::encyrptText(char* plainText, int plainTextSize, char* output) {
 
 }
 
-void RSAEngine::decryptText(const std::string& cipherText, std::string& plainText) {
+void RSAEngine::decryptText(char* cipherText, int cipherTextSize, char* output) {
 
 }
