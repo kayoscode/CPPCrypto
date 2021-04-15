@@ -8,6 +8,9 @@
 
 /**
  * handles math between RSA numbers
+ * Note: bits for this number are stored literally as a stream of bits
+ * The first bit is the most significant bit and the last bit is the least significant bit!
+ * @author Bryce Young April 14, 2021
  * */
 struct RSANumber {
     RSANumber(int* value, int bits) 
