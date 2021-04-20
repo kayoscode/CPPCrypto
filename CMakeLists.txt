@@ -17,14 +17,16 @@ file(GLOB AESTest
     "tests/AESTest.cpp"    
 )
 
-add_library(${PROJ_NAME}
-    "${SRC}"
+file(GLOB RSATest
+    "tests/RSATest.cpp"
 )
 
-add_executable(AESTest
-    "${AESTest}"
-)
+add_library(${PROJ_NAME} "${SRC}")
+
+add_executable(AESTest "${AESTest}")
+add_executable(RSATest "${RSATest}")
 
 target_link_libraries(AESTest ${PROJ_NAME})
+target_link_libraries(RSATest ${PROJ_NAME})
 
 include_directories(${PROJECT_SOURCE_DIR}/./include)

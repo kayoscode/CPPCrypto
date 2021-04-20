@@ -1,8 +1,7 @@
 #ifndef INCLUDE_CPPCRYPTO_H
 #define INCLUDE_CPPCRYPTO_H
 
-#include "memory.h"
-
+#include <memory.h>
 #include "CPPCrypto.h"
 
 /**
@@ -166,13 +165,13 @@ struct AESKey {
             switch(type) {
                 case AESKeyType::AES_KEY128:
                     memcpy(dest, data, sizeof(char) * 16);
-                break;
+                    break;
                 case AESKeyType::AES_KEY192:
                     memcpy(dest, data, sizeof(char) * 24);
                     break;
                 case AESKeyType::AES_KEY256:
                     memcpy(dest, data, sizeof(char) * 32);
-                break;
+                    break;
             }
         }
 };
