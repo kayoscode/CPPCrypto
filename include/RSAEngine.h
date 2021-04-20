@@ -4,6 +4,7 @@
 #include <memory.h>
 #include <iostream>
 #include <bitset>
+#include <string>
 
 #include "CPPCrypto.h"
 #include "SecureRandom.h"
@@ -47,6 +48,23 @@ class RSANumber {
             return *this;
         }
 
+        /**
+         * Sets the number from a binary string
+         * @param binary the value of the number in binary with the least significant bit furthest to the right
+         * */
+        inline void setFromBinary(const std::string& binary) {
+            *this = 0;
+            int index = 0;
+
+            for(int i = binary.size() - 1; i >= 0; --i) {
+                if(binary[i] == '1') {
+                    setBit(index);
+                }
+
+                index++;
+            }
+        }
+
         inline void setBit(uint32_t index) {
             if(index < 0) {
                 return;
@@ -80,8 +98,46 @@ class RSANumber {
             return (value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] & (1 << (index % (sizeof(uint32_t) * 8)))) != 0;
         }
 
+        /**
+         * Prints the number in binary but ignores the first chunks which are zero
+         * if @param printAll is false
+         * */
+        void printBinary(bool printAll = false) {
+            for(int i = 0; i < ARR_SIZE; ++i) {
+                if(value[i] != 0) {
+                    printAll = true;
+                }
+
+                if(printAll) {
+                    std::cout << std::bitset<32>(value[i]);
+                }
+            }
+
+            std::cout << "\n";
+        }
+
         inline bool isNegative() const {
             return getBit((sizeof(uint32_t) * 8 * ARR_SIZE) - 1);
+        }
+
+        /**
+         * A fast function returning the most significant power of 2
+         * @return the position of the most significant bit
+         * if 0 @return is -1
+         * */
+        inline int getMostSignificantBitIndex() {
+            int index = sizeof(uint32_t) * 8 * (ARR_SIZE - 1);
+
+            for(int i = 0; i < ARR_SIZE; ++i) {
+                if(value[i] != 0) {
+                    float v = (float)value[i];
+                    return (((*(int*)&v & 0x7F800000) >> 23) - 127) + index;
+                }
+
+                index -= 32;
+            }
+
+            return -1;
         }
 
         RSANumber pow(RSANumber& y) const;

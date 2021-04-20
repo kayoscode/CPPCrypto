@@ -412,8 +412,19 @@ void testRSANumberAdditionLogicalOps() {
 
 void testRSANumberModulusOperation() {
     std::cout << "Testing RSA modulus\n";
-    
-    RSANumber n1(33);
+
+    //test the most significant bit index
+    RSANumber n1(0);
+    assert(n1.getMostSignificantBitIndex() == -1);
+    n1 = 1;
+    assert(n1.getMostSignificantBitIndex() == 0);
+    n1 <<= 64;
+    assert(n1.getMostSignificantBitIndex() == 64);
+    //NOTE: this one can fail if there is a problem with addition as well!
+    n1 += n1;
+    assert(n1.getMostSignificantBitIndex() == 65);
+
+    n1 = 33;
     RSANumber n2(64);
     RSANumber mod;
 
@@ -440,6 +451,35 @@ void testRSANumberModulusOperation() {
     mod = n1 % n2;
     assert(n1.getBit(0) == false);
     assert(mod == 0);
+
+    //one modulus test with two very big integers
+    n1 = 0;
+    n1[ARR_SIZE - 1] = 0xDEADBEEF;
+    n1[ARR_SIZE - 2] = 0x11111111;
+    n1[ARR_SIZE - 3] = 0xFFFFFFFF;
+    n1[ARR_SIZE - 4] = 0x12345678;
+
+    n2[ARR_SIZE - 1] = 0x11111111;
+    n2[ARR_SIZE - 2] = 0x11111111;
+    n2[ARR_SIZE - 3] = 0x11111111;
+    n2[ARR_SIZE - 4] = 0x11111111;
+    n2 >>= 1;
+
+    std::cout << "Calculating big modulus\n";
+    n1.printBinary();
+    std::cout << "%\n";
+    n2.printBinary();
+
+    mod = n1 % n2;
+    mod.printBinary();
+
+    std::cout << "Expected:\n00000001001000110100010101100111111011101110111011101110111011100000000000000000000000000000000011001101100111001010110111011111\n";
+    RSANumber test;
+    test.setFromBinary("1001000110100010101100111111011101110111011101110111011100000000000000000000000000000000011001101100111001010110111011111");
+    assert(test == mod);
+
+    mod = n2 % n1;
+    assert(mod == n2);
 
     std::cout << "RSA modulus tests passed\n";
 }

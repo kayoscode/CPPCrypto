@@ -157,6 +157,12 @@ void rsaModulus(const RSANumber& a, const RSANumber& b, RSANumber& ret) {
     ret = a;
 
     adiv2 >>= 1;
+    int xBits = x.getMostSignificantBitIndex();
+    int adiv2Bits = adiv2.getMostSignificantBitIndex();
+
+    if(adiv2Bits - xBits > 1) {
+        x <<= (adiv2Bits - xBits - 1);
+    }
 
 	while(x <= adiv2) {
         x <<= 1;
