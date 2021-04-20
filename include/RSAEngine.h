@@ -2,6 +2,8 @@
 #define INCLUDE_RSAENGINE_H
 
 #include <memory.h>
+#include <iostream>
+#include <bitset>
 
 #include "CPPCrypto.h"
 #include "SecureRandom.h"
@@ -30,7 +32,9 @@ class RSANumber {
          * Creates the RSA number from a base 10 initialization
          * @param num the number in base 10
          * */
-        RSANumber(uint32_t num);
+        RSANumber(uint32_t num) {
+            this->value[ARR_SIZE - 1] = num;
+        }
 
         /**
          * Default constructor
@@ -43,56 +47,107 @@ class RSANumber {
             return *this;
         }
 
-        void setBit(int index) {
-            value[ARR_SIZE - (index / 32) - 1] |= (1 << (index %32));
+        inline void setBit(uint32_t index) {
+            if(index < 0) {
+                return;
+            }
+            else if(index >= ARR_SIZE) {
+                return;
+            }
+
+            value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] |= (1 << (index % (sizeof(uint32_t) * 8)));
         }
 
-        void clearBit(int index) {
-            value[ARR_SIZE - (index / 32) - 1] &= ~(1 << (index %32));
+        inline void clearBit(uint32_t index) {
+            if(index < 0) {
+                return;
+            }
+            else if(index >= sizeof(uint32_t) * ARR_SIZE * 8) {
+                return;
+            }
+
+            value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] &= ~(1 << (index % (sizeof(uint32_t) * 8)));
         }
 
-        RSANumber operator>>(int c);
-        RSANumber operator<<(int c);
+        inline bool getBit(uint32_t index) const {
+            if(index < 0) {
+                return 0;
+            }
+            else if(index >= sizeof(uint32_t) * ARR_SIZE * 8) {
+                return 0;
+            }
+
+            return (value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] & (1 << (index % (sizeof(uint32_t) * 8)))) != 0;
+        }
+
+        inline bool isNegative() const {
+            return getBit((sizeof(uint32_t) * 8 * ARR_SIZE) - 1);
+        }
+
+        RSANumber pow(RSANumber& y) const;
+        RSANumber& setPow(RSANumber& y);
+
+        RSANumber operator>>(int c) const;
+        RSANumber operator<<(int c) const;
         RSANumber& operator>>=(int c);
         RSANumber& operator<<=(int c);
 
-        bool operator>(const RSANumber& num);
-        bool operator<(const RSANumber& num);
-        bool operator>=(const RSANumber& num);
-        bool operator<=(const RSANumber& num);
-        bool operator==(const RSANumber& num);
+        bool operator>(const RSANumber& num) const;
+        bool operator<(const RSANumber& num) const;
+        bool operator>=(const RSANumber& num) const;
+        bool operator<=(const RSANumber& num) const;
+        bool operator==(const RSANumber& num) const;
+        bool operator!=(const RSANumber& num) const;
 
-        RSANumber operator+(const RSANumber& num);
-        RSANumber operator-(const RSANumber& num);
+        RSANumber operator+(const RSANumber& num) const;
+        RSANumber operator-(const RSANumber& num) const;
         RSANumber& operator+=(const RSANumber& num);
         RSANumber& operator-=(const RSANumber& num);
 
-        RSANumber operator%(const RSANumber& num);
+        //applicable logical operators
+        RSANumber operator|(const RSANumber& num) const;
+        RSANumber operator&(const RSANumber& num) const;
+        RSANumber operator^(const RSANumber& num) const;
+        RSANumber& operator|=(const RSANumber& num);
+        RSANumber& operator&=(const RSANumber& num);
+        RSANumber& operator^=(const RSANumber& num);
+
+        /**
+         * @return true iff the value is not equal to 0
+         * */
+        bool operator!() const {
+            for(int i = 0; i < ARR_SIZE; ++i) {
+                if(value[i] != 0) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        RSANumber operator%(const RSANumber& num) const;
         RSANumber& operator%=(const RSANumber& num);
 
-        RSANumber operator*(const RSANumber& num) {
-            RSANumber ret;
-            return ret;
-        }
+        RSANumber operator*(const RSANumber& num) const;
+        RSANumber operator/(const RSANumber& num) const;
+        RSANumber& operator*=(const RSANumber& num);
+        RSANumber& operator/=(const RSANumber& num);
 
-        RSANumber operator/(const RSANumber& num) {
-            RSANumber ret;
-            return ret;
-        }
-
-        RSANumber& operator*=(const RSANumber& num) {
-            return *this;
-        }
-
-        RSANumber& operator/=(const RSANumber& num) {
-            return *this;
-        }
+        RSANumber operator~();
+        RSANumber operator-();
 
         uint32_t* getNum() {
             return value;
         }
 
-        uint32_t& operator[](int index) {
+        const uint32_t* getNum() const {
+            return value;
+        }
+
+        /**
+         * Const version of getting by index
+         * */
+        inline const uint32_t& operator[](int index) const {
             if(index < 0) {
                 index = 0;
             }
@@ -104,10 +159,24 @@ class RSANumber {
         }
 
         /**
-         * Returns the number in a certain base
-         * @param base the base to convert
+         * Get by index but non const
          * */
-        std::string toString(int base);
+        inline uint32_t& operator[](int index) {
+            if(index < 0) {
+                index = 0;
+ 
+            }
+            else if(index >= ARR_SIZE) {
+                index = ARR_SIZE - 1;
+            }
+
+            return value[index];
+        }
+
+        /**
+         * Returns the number in a certain base
+         * @param base the base to con 
+ ;
 
         /**
          * Generates a random prime number within a certain bit range
@@ -118,9 +187,15 @@ class RSANumber {
     private:
         //value 128 because 128 * 32 = 4096 -> max bits for RSA key
         uint32_t value[ARR_SIZE] = { 0 };
-        friend void rsaNumLSL(RSANumber& num, int c, RSANumber& output);
-        friend void rsaNumLSR(RSANumber& num, int c, RSANumber& output);
-
+        friend void rsaNumLSL(const RSANumber& num, int c, RSANumber& output);
+        friend void rsaNumLSR(const RSANumber& num, int c, RSANumber& output);
+        friend int rsaNumCmp(const RSANumber& n1, const RSANumber& n2);
+        friend void rsaNumAdd(const RSANumber& n1, const RSANumber& n2, RSANumber& output);
+        friend void rsaNumSub(const RSANumber& n1, const RSANumber& n2, RSANumber& output);
+        friend void rsaNumberOr(const RSANumber& n1, const RSANumber& n2, RSANumber& dest);
+        friend void rsaNumberAnd(const RSANumber& n1, const RSANumber& n2, RSANumber& dest);
+        friend void rsaNumberXor(const RSANumber& n1, const RSANumber& n2, RSANumber& dest);
+        friend void rsaNumberNegate(const RSANumber n1, RSANumber& dest);
 };
 
 /**

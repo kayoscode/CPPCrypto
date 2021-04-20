@@ -34,7 +34,6 @@ void testRSANumberLSLLSLR() {
 
     n2 = n1;
     n2 >>= 1556;
-
     n1 >>= 1556;
 
     assert(n1.getNum()[ARR_SIZE - 1] == test);
@@ -92,7 +91,8 @@ void testRSANumberLSLLSLR() {
 
     //shift value edge cases
     n1 = RSANumber(0xFFFFFFFF);
-    n1 <<= 0x7000;
+    //going out of range of the integer
+    n1 <<= sizeof(uint32_t) * 8 * ARR_SIZE * 4;
 
     for(int i = 0; i < ARR_SIZE; ++i) {
         assert(n1.getNum()[i] == 0);
@@ -186,38 +186,285 @@ void testRSAConstAssign() {
     std::cout << "All constructor and assignment tests passed\n";
 }
 
-void testRSANumberAssignment() {
-    std::cout << "Testing assignment operators\n";
-}
-
 void testRSANumberComparators() {
     std::cout << "Testing RSA number comparisons\n";
+    RSANumber n1(0x1);
+    RSANumber n2(0x1);
+
+    //at this point, n2 should be exactly equal to n1
+    assert(n1 == n1);
+    assert(n1 == n2);
+    assert(n1 < n2 == false);
+    assert(n1 > n2 == false);
+    assert(n1 >= n2);
+    assert(n1 <= n2);
+    assert(n1 != n2 == false);
+
+    n1 = RSANumber(0xFFFFFFFF);
+    n2 = RSANumber(0x7FFFFFFF);
+    n2 <<= 1;
+
+    //n1 should be strictly greater than n2 
+    assert(n1 != n2);
+    assert(n1 == n2 == false);
+    assert(n1 <= n2 == false);
+    assert(n1 < n2 == false);
+    assert(n1 >= n2);
+    assert(n1 > n2);
+
+    n1 <<= 587;
+    n2 <<= 700;
+
+    //now n2 should be greater than n1
+    assert(n1 != n2);
+    assert(n1 == n2 == false);
+    assert(n2 > n1 && n2 >= n1);
+    assert(n1 <= n2 && n1 < n2);
+
+    n2 = RSANumber(0xFFFFFFFF);
+    n2 <<= 587;
+
+    //again they should be equal
+    assert(n1 == n2);
+    assert(n1 >= n2 && n1 <= n2);
+    assert(n1 < n2 == false);
+    assert(n1 > n2 == false);
+    assert(n1 != n2 == false);
+    assert(n2 < n1 == false);
+    assert(n2 > n1 == false);
+
+    std::cout << "Passed all comparison test cases\n";
+}
+
+void testRSANumberCompliment() {
+    std::cout << "Testing RSA number compliment and bit manipulation\n";
+    //test compliment
+
+    RSANumber n1(1);
+    assert(n1[ARR_SIZE - 1] == 1);
+
+    RSANumber n2 = ~n1;
+    assert(n1[ARR_SIZE - 1] == 1);
+
+    ~n2;
+    for(int i = 0; i < ARR_SIZE - 1; ++i) {
+        assert(n2[i] == 0xFFFFFFFF);
+    }
+
+    assert(n2[ARR_SIZE - 1] == ~1);
+
+    //test bit setting and getting while were here
+    n2 = ~n2;
+    for(int i = 0; i < ARR_SIZE - 1; ++i) {
+        assert(n2[i] == 0);
+    }
+
+    assert(n2[ARR_SIZE - 1] == 1);
+
+    n2.setBit(1);
+    assert(n2[ARR_SIZE - 1] == 3);
+    n2.clearBit(1);
+    n2.clearBit(0);
+    assert(n2[ARR_SIZE - 1] == 0);
+
+    n1 = ~n2;
+    n1.setBit(62);
+    n1.setBit(34);
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 0xFFFFFFFF);
+    }
+
+    n1.clearBit(64);
+
+    assert(n1.getBit(64) != true);
+    assert(n1.getBit(63) == true);
+    assert(n1.getBit(65) == true);
+
+    n1.setBit(64);
+    assert(n1.getBit(64) && n1.getBit(63) && n1.getBit(65));
+
+    //test bounds overflowing
+    //expected behavior: do not change anything
+    n1 = RSANumber(0);
+    n1.setBit(ARR_SIZE * sizeof(uint32_t) * 8 + 1000);
+    n1.setBit(ARR_SIZE * sizeof(uint32_t) * 8 + 2000);
+
+    assert(n1.getBit(ARR_SIZE * sizeof(uint32_t) * 8 + 1000) == false);
+    assert(n1.getBit(ARR_SIZE * sizeof(uint32_t) * 8 + 2000) == false);
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 0);
+    }
+
+    std::cout << "Compliment operator and bit manipulation tests passed\n";
+}
+
+void testRSANumberAdditionLogicalOps() {
+    std::cout << "Testing addition and logical operators\n";
+
+    //test basic addition arithmetic
+    RSANumber n1(1);
+    RSANumber n2(7);
+    n1 += n2;
+
+    assert(n1 == RSANumber(8));
+    n1 += RSANumber(0xFF);
+    assert(n1 == RSANumber(8 + 0xFF));
+
+    //test basic carrying functionlity
+    //NOTE: if this fails, it could also be the shifting at fault, but considering that's already been tested at this point, it's less likely
+    n1 = RSANumber(1);
+    RSANumber max(1);
+    RSANumber curr(1);
+    max <<= 192;
+
+    while(n1 < max) {
+        n1 += n1;
+        curr <<= 1;
+        assert(n1 == curr);
+    }
+
+    //test addition with large carry and implicit casting
+    n1 = 0xFFFFFFFF;
+    n1 += 1;
+
+    assert(n1[ARR_SIZE - 2] == 1);
+    assert(n1[ARR_SIZE - 1] == 0);
+
+    n1.clearBit(32);
+    assert(n1 == 0);
+
+    //TEST negations
+    n1 = 1;
+    n1 = -n1;
+
+    assert(n1[ARR_SIZE - 1] == 0xFFFFFFFF);
+    n1 = -n1;
+    assert(n1[ARR_SIZE - 1] == 1);
+
+    //TODO: test subtraction
+    n1 = 2;
+    n1 -= 1;
+    assert(n1 == 1);
+
+    n1 = 0;
+    n1 -= 1;
+
+    assert(n1.isNegative());
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 0xFFFFFFFF);
+    }
+    n1 -= 5;
+
+    assert(-n1 == 6);
+    n1 <<= 80;
+    n1 = -n1;
+
+    //testing to make sure the result of -6 shifted left then negated is the same
+    //result as 6 shifted left 
+    //only the 81st and 82nd bit should be set
+    assert(n1.getBit(81) && n1.getBit(82));
+    n1.clearBit(81);
+    n1.clearBit(82);
+    assert(n1 == 0);
+
+    n1 = 0;
+    //TEST LOGICAL OPERATORS
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        n1 = n1 | (RSANumber(1) << (32 * i));
+    }
+
+    n2 = n1;
+    n2 <<= 1;
+    n1 |= n2;
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 3);
+    }
+
+    //test xor
+    n2 >>= 1;
+    n1 ^= n2;
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 2);
+    }
+
+    //test and
+    n2 <<= 1;
+    n1 &= n2;
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 2);
+    }
+
+    n2 >>= 1;
+    n1 &= n2;
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        assert(n1[i] == 0);
+    }
+
+    std::cout << "Addition and logical operator tests passed\n";
+}
+
+void testRSANumberModulusOperation() {
+    std::cout << "Testing RSA modulus\n";
+    
+    RSANumber n1(33);
+    RSANumber n2(64);
+    RSANumber mod;
+
+    assert(n1 % n2 == 33);
+    n1 %= n2;
+    assert(n1 == 33);
+
+    n2 >>= 1;
+    assert(n1 % n2 == 1);
+
+    for(int i = 0; i < ARR_SIZE; ++i) {
+        n1[i] = i;
+    }
+
+    n2 = 2;
+    //make sure the number is odd
+    n1.setBit(0);
+    mod = n1 % n2;
+    assert(n1.getBit(0));
+    assert(mod == 1);
+
+    //make sure the number is even
+    n1.clearBit(0);
+    mod = n1 % n2;
+    assert(n1.getBit(0) == false);
+    assert(mod == 0);
+
+    std::cout << "RSA modulus tests passed\n";
 }
 
 void testRSANumberOperations() {
-    uint32_t n1Int = 32;
-    uint32_t n2Int = 64;
-    RSANumber n1(n1Int);
-    RSANumber n2(n2Int);
-
-    std::cout << "Verifying correct values\n";
-    for(int i = 0; i < ARR_SIZE - 1; ++i) {
-        assert(n1.getNum()[i] == 0);
-        assert(n2.getNum()[i] == 0);
-    }
-
-    assert(n1.getNum()[ARR_SIZE - 1] == n1Int);
-    assert(n2.getNum()[ARR_SIZE - 1] == n2Int);
-
-    //test assignment operator
-    testRSANumberAssignment();
+    //make sure numbers can be assigned and constructed properly
+    testRSAConstAssign();
 
     //test shifting
     testRSANumberLSLLSLR();
+
+    //test comparators
+    testRSANumberComparators();
+
+    //test negation and stuff
+    testRSANumberCompliment();
+
+    //test addition and subtraction
+    testRSANumberAdditionLogicalOps();
+
+    //test modulus arithmetic
+    testRSANumberModulusOperation();
 }
 
 int main() {
-    testRSAConstAssign();
     testRSANumberOperations();
     std::cout << "All test cases passed successfully\n";
     return 0;
