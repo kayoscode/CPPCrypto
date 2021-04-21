@@ -43,6 +43,15 @@ class RSANumber {
         RSANumber() 
         {}
 
+        /**
+         * A function designed to calculate both the quotient and the mod in one go!
+         * Avoids having to calculate them both separately to save CPU cycles
+         * */
+        static void div(const RSANumber& N, const RSANumber& D, RSANumber& result, RSANumber& mod);
+
+        /**
+         * Assignment operator
+         * */
         RSANumber& operator=(const RSANumber& num) {
             memcpy(this->value, num.value, sizeof(uint32_t) * ARR_SIZE);
             return *this;
@@ -65,17 +74,23 @@ class RSANumber {
             }
         }
 
+        /**
+         * Sets a single bit
+         * */
         inline void setBit(uint32_t index) {
             if(index < 0) {
                 return;
             }
-            else if(index >= ARR_SIZE) {
+            else if(index >= sizeof(uint32_t) * 8 * ARR_SIZE) {
                 return;
             }
 
             value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] |= (1 << (index % (sizeof(uint32_t) * 8)));
         }
 
+        /**
+         * Clears a single bit
+         * */
         inline void clearBit(uint32_t index) {
             if(index < 0) {
                 return;
@@ -87,6 +102,9 @@ class RSANumber {
             value[ARR_SIZE - (index / (sizeof(uint32_t) * 8)) - 1] &= ~(1 << (index % (sizeof(uint32_t) * 8)));
         }
 
+        /**
+         * Returns a single bit value
+         * */
         inline bool getBit(uint32_t index) const {
             if(index < 0) {
                 return 0;
@@ -100,21 +118,98 @@ class RSANumber {
 
         /**
          * Prints the number in binary but ignores the first chunks which are zero
-         * if @param printAll is false
          * */
-        void printBinary(bool printAll = false) {
-            for(int i = 0; i < ARR_SIZE; ++i) {
-                if(value[i] != 0) {
-                    printAll = true;
-                }
+        void printBinary() {
+            std::cout << getBinary() << "\n";
+        }
 
-                if(printAll) {
-                    std::cout << std::bitset<32>(value[i]);
+        std::string getBinary() {
+            std::string ret;
+            int highestBit = this->getMostSignificantBitIndex();
+
+            for(int i = highestBit; i >= 0; --i) {
+                if(getBit(i)) {
+                    ret += '1';
+                }
+                else {
+                    ret += '0';
                 }
             }
 
-            std::cout << "\n";
+            return ret;
         }
+
+        void printOctal() {
+            std::cout << getOctal() << "\n";
+        }
+
+        /**
+         * gets the number as an octal string
+         * */
+        std::string getOctal() {
+            std::string ret;
+            RSANumber copy(*this);
+            RSANumber zero(0), r, eight(8);
+
+            while(copy > zero) {
+                RSANumber::div(copy, eight, copy, r);
+                ret += (r[ARR_SIZE - 1] + '0');
+            }
+
+            for(int i = 0; i < ret.size() / 2; ++i) {
+                std::swap(ret[i], ret[ret.size() - i - 1]);
+            }
+
+            return ret;
+        }
+
+        void printDecimal() {
+            std::cout << getDecimal() << "\n";
+        }
+
+        std::string getDecimal() {
+            std::string ret;
+            RSANumber copy(*this);
+            RSANumber zero(0), r, eight(10);
+
+            while(copy > zero) {
+                RSANumber::div(copy, eight, copy, r);
+                ret += (r[ARR_SIZE - 1] + '0');
+            }
+
+            for(int i = 0; i < ret.size() / 2; ++i) {
+                std::swap(ret[i], ret[ret.size() - i - 1]);
+            }
+
+            return ret;
+        }
+
+        void printHex() {
+            std::cout << getHex() << "\n";
+        }
+
+        std::string getHex() {
+            const char* hexToStr = "0123456789ABCDEF";
+            std::string ret;
+            RSANumber copy(*this);
+            RSANumber zero(0), r, eight(16);
+
+            while(copy > zero) {
+                RSANumber::div(copy, eight, copy, r);
+                ret += hexToStr[(r[ARR_SIZE - 1])];
+            }
+
+            for(int i = 0; i < ret.size() / 2; ++i) {
+                std::swap(ret[i], ret[ret.size() - i - 1]);
+            }
+
+            return ret;
+        }
+
+        void printB64() {
+            //std::cout << 
+        }
+
 
         inline bool isNegative() const {
             return getBit((sizeof(uint32_t) * 8 * ARR_SIZE) - 1);
@@ -125,7 +220,7 @@ class RSANumber {
          * @return the position of the most significant bit
          * if 0 @return is -1
          * */
-        inline int getMostSignificantBitIndex() {
+        inline int getMostSignificantBitIndex() const {
             int index = sizeof(uint32_t) * 8 * (ARR_SIZE - 1);
 
             for(int i = 0; i < ARR_SIZE; ++i) {

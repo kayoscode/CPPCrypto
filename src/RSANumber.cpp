@@ -148,15 +148,48 @@ inline void rsaNumSub(const RSANumber& n1, const RSANumber& n2, RSANumber& dest)
 	}
 }
 
+//Special thanks to wikipedia for this one XD
+inline void rsaNumberDiv(RSANumber N, RSANumber D, RSANumber& q, RSANumber& r) {
+    //compute n/m = m|-n
+    //n is dividend, m is divisor
+    //store remainder in mod
+    q = 0;
+    r = 0;
+
+    //handle divide by zero
+    if(D == 0) {
+        return;
+    }
+
+    int dividendIndex = N.getMostSignificantBitIndex();
+
+    for(int i = dividendIndex; i >= 0; --i) {
+        r <<= 1;
+
+        if(N.getBit(i)) {
+            r.setBit(0);
+        }
+
+        if(r >= D) {
+            r -= D;
+            q.setBit(i);
+        }
+    }
+}
+
+void RSANumber::div(const RSANumber& N, const RSANumber& D, RSANumber& result, RSANumber& mod) {
+    rsaNumberDiv(N, D, result, mod);
+}
+
 //if there is a faster way of doing this, I don't know of it
 //with the efficient implementations of the copy constructor, assignment operator, shifts, and subtraction, this should be a relatively fast algorithm
 //it tends to be fairly slow (a couple milliseconds) when calculating mod for very very large numbers
 void rsaModulus(const RSANumber& a, const RSANumber& b, RSANumber& ret) {
+    //this is still faster than integer division and getting the remainders!
 	RSANumber x(b);
-	RSANumber adiv2(a);
+	RSANumber adiv2(a >> 1);
     ret = a;
 
-    adiv2 >>= 1;
     int xBits = x.getMostSignificantBitIndex();
     int adiv2Bits = adiv2.getMostSignificantBitIndex();
 
@@ -323,23 +356,57 @@ RSANumber& RSANumber::operator^=(const RSANumber& num) {
     return *this;
 }
 
-//TODO: all this multiplication stuff needs to be done soon
-//I NEED TO THINK OF A FAST ALGORITHM, it won't be acceptable to do long division and long multiplication
+/**
+ * One of the rare instances where passing by value is more efficient.
+ * */
+inline void rsaNumberMul(RSANumber n, RSANumber m, RSANumber& ret) {
+    int count = 0;
+    ret = 0;
+
+    int mostSignificantBit = m.getMostSignificantBitIndex();
+
+    while(count <= mostSignificantBit) {
+        if(m.getBit(count) == 1) {
+            ret += (n << count);
+        }
+
+        count++;
+    }
+
+   /**
+    * OLD: slower impl
+    while(m.getMostSignificantBitIndex() >= 0) {
+        if(m.getBit(0) == 1) {
+            ret += (n << count);
+        }
+
+        count++;
+        m >>= 1;
+    }
+    */
+}
+
 RSANumber RSANumber::operator*(const RSANumber& num) const {
     RSANumber ret;
+    rsaNumberMul(*this, num, ret);
     return ret;
 }
 
 RSANumber RSANumber::operator/(const RSANumber& num) const {
     RSANumber ret;
+    RSANumber mod;
+    rsaNumberDiv(*this, num, ret, mod);
     return ret;
 }
 
 RSANumber& RSANumber::operator*=(const RSANumber& num) {
+    rsaNumberMul(*this, num, *this);
     return *this;
 }
 
 RSANumber& RSANumber::operator/=(const RSANumber& num) {
+    RSANumber mod;
+    rsaNumberDiv(*this, num, *this, mod);
     return *this;
 }
 

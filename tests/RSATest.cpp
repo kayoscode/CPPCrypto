@@ -407,6 +407,12 @@ void testRSANumberAdditionLogicalOps() {
         assert(n1[i] == 0);
     }
 
+    assert(n1 + n2 == n2 + n1);
+
+    //ensure associativity
+    RSANumber expectedResult = -(n1 + n2);
+    assert((n1 + n2) + expectedResult == (expectedResult + n1) + n2 && (n1 + n2) + expectedResult == (expectedResult + n2) + n1);
+
     std::cout << "Addition and logical operator tests passed\n";
 }
 
@@ -481,7 +487,113 @@ void testRSANumberModulusOperation() {
     mod = n2 % n1;
     assert(mod == n2);
 
+    //zero mod test
+    n1 = n2 = 10;
+    n1[0] = 100;
+    n2[0] = 100;
+    assert(n1 % n2 == 0);
+    assert(n1 % n1 == 0);
+    assert(n2 % n2 == 0);
+
     std::cout << "RSA modulus tests passed\n";
+}
+
+void testRSANumberMultiplicationOperaton() {
+    RSANumber n1(10), n2(10), result;
+
+    result = n1 * n2;
+    assert(result[ARR_SIZE - 1] == 100);
+
+    //test with much larger number
+    RSANumber expectedResult;
+    n1.setFromBinary("1001010100000010111110010000000000");
+    n2.setFromBinary("1011011101110111101111100111111001");
+    expectedResult.setFromBinary("1101010110010101101001101000010011100001000010101001100010000000000");
+
+    n1 *= n2;
+    assert(n1 == expectedResult);
+
+    //test with even larger numbers
+    n1.setFromBinary("11001110101101100100010000111001000100001100110000010100010101110101010011110100101010110011101");
+    n2.setFromBinary("1000000000010000001001001100110111100");
+    expectedResult.setFromBinary("11001110110100000101011001110001010101001100011001110101010111000000100111010101100100010010101100011011111011101011011010001001100");
+
+    n1.printBinary();
+    std::cout << "*\n";
+    n2.printBinary();
+    std::cout << "=\n";
+    std::cout << "0000000000000000000000000000011001110110100000101011001110001010101001100011001110101010111000000100111010101100100010010101100011011111011101011011010001001100\n";
+
+    result = n1 * n2;
+
+    std::cout << "Expected result:\n";
+    expectedResult.printBinary();
+    std::cout << "Actual result: \n";
+    result.printBinary();
+
+    assert(result == expectedResult);
+
+    //test even larger numbers as the final test to be sure
+    n1.setFromBinary("1010101011111111111111111111111111111111000000000000000000000001101010101010101010111101010101010001001010010101000001010101010101010100010010100100101010101000000010010100010101010010010101010111101");
+    n2.setFromBinary("11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110000000000000000000000000101100100101001100110101100000000000000000000000000000000000000000000000001111111111111111111111111111111111111111100000000000000000001101010101010101010101001010101010101010101010101000100100100000100100100100101011");
+    expectedResult.setFromBinary("101010101111111111111111111111111111111100000000000000000000000110101010101010101011110101010101000100101001010001011010010101010101010010000101110110100111001001100111100000110100111010000001001000100111111110011101011111100001000001000110101101001000000010111001011100110011101010111000101000101011100111101010001101100111001100011000011010100010010010110101100111001010010111111111101000100111100111001001101110110000000010110011111010011111001011101011110001111001001101010000110100010111100110101110101101101001010111010111100101000001001010111111");
+    RSANumber ans = n1 * n2;
+
+    assert(expectedResult == ans);
+
+    //ensure commutivity
+    assert(n1 * n2 == n2 * n1);
+
+    //ensure associativity
+    assert((n1 * n2) * expectedResult == (expectedResult * n1) * n2 && (n1 * n2) * expectedResult == (expectedResult * n2) * n1);
+
+    //TEST DIVISION
+    n1 = 16;
+    n2 = 4;
+    n1 /= n2;
+    std::cout << "Division result\n";
+    n1.printBinary();
+    assert(n1 == 4);
+
+    n1 = 90;
+    n2 = 30;
+    n1 /= n2;
+    std::cout << "Division result\n";
+    n1.printBinary();
+    assert(n1 == 3);
+
+    n1 = 20;
+    n2 = 4;
+    n1 /= n2;
+    std::cout << "Division result\n";
+    n1.printBinary();
+
+    n1.setFromBinary("11010111110100010011");
+    n2.setFromBinary("1010");
+    expectedResult.setFromBinary("10101100101001110");
+
+    RSANumber integer = n1 / n2;
+    std::cout << "Division result\n";
+    integer.printBinary();
+
+    assert(integer == expectedResult);
+
+    n1 = 8;
+    n2 = RSANumber(1);
+    n1 /= n2;
+    assert(n1 == 8);
+
+    //very big numbers for testing
+    n1.setFromBinary("1000111001000001000001111100101001011101000100010100100111011101110111011100011011111101000011011111100000111001000000000010000001001001100110111100");
+    n2.setFromBinary("11001110101101100100010000111001000100001100110000010100010101110101010011110100101010110011101");
+    expectedResult.setFromBinary("10110000001011000011110101100000100100010000011100001");
+    n1 /= n2;
+    n1.printBinary();
+    assert(n1 == expectedResult);
+
+    n1.printDecimal();
+    n1.printOctal();
+    expectedResult.printHex();
 }
 
 void testRSANumberOperations() {
@@ -502,6 +614,9 @@ void testRSANumberOperations() {
 
     //test modulus arithmetic
     testRSANumberModulusOperation();
+
+    //test multiplication arithmetic
+    testRSANumberMultiplicationOperaton();
 }
 
 int main() {
