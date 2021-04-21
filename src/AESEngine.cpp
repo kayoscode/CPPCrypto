@@ -3,22 +3,20 @@
 #include "AESEngine.h"
 
 //check for hardware support of AES
-#ifdef __x86_64__
-    #include <immintrin.h>
-    #if defined(__WIN32) || defined(WIN32)
-        #include <intrin.h>
-        #define USE_AES_HW
-    #elif defined(__unix__) || defined(__unix)
-        #include <cpuid.h>
-        #define USE_AES_HW
-    #endif
+#include <immintrin.h>
+#if defined(__WIN32) || defined(WIN32) || defined(_WIN32)
+    #define USE_AES_HW
+    #include <intrin.h>
+#elif defined(__unix__) || defined(__unix)
+    #include <cpuid.h>
+    #define USE_AES_HW
 #endif
 
 //https://www.felixcloutier.com/x86/cpuid
 //check for hardware support of AES-NI from documentation listed above
 bool checkAESHwSupport() {
     #ifdef USE_AES_HW
-        #if defined(__WIN32) || defined(WIN32)
+        #if defined(__WIN32) || defined(WIN32) || defined(_WIN32)
             //windows check
             int cpuInfo[4] = { -1 };
             __cpuid(cpuInfo, 1);
@@ -895,9 +893,8 @@ void AESDecrypt128_hwECB(char* cipherText, int cipherTextSize, AESKey* key, char
 
     //encrypt text using hw mneumonics
     __m128i temp;
-    __m128i nill;
-    nill[0] = 0;
-    nill[1] = 0;
+    char zilch[16] = { 0 };
+    __m128i nill = _mm_load_si128((__m128i*)zilch);
 
     int len = (cipherTextSize / 16) + (cipherTextSize % 16 != 0);
 
@@ -927,9 +924,8 @@ void AESDecrypt128_hwCBC(char* cipherText, int cipherTextSize, AESKey* key, char
 
     //encrypt text using hw mneumonics
     __m128i data, lastinput;
-    __m128i nill;
-    nill[0] = 0;
-    nill[1] = 0;
+    char zilch[16] = { 0 };
+    __m128i nill = _mm_load_si128((__m128i*)zilch);
 
     int len = (cipherTextSize / 16) + (cipherTextSize % 16 != 0);
     __m128i cbcFeedback = _mm_loadu_si128((const __m128i*)key->getInitVector());

@@ -85,7 +85,7 @@ inline void rsaNumLSR(const RSANumber& num, int c, RSANumber& output) {
         memcpy(output.value, ZERO, sizeof(uint32_t) * shifts);
     }
 
-	for(int i = 0; i <= ARR_SIZE; ++i) {
+	for(int i = 0; i < ARR_SIZE; ++i) {
         tmp = ((uint64_t)output.value[i] << (sizeof(uint32_t) * 8));
         tmp >>= count;
         output.value[i] = (tmp >> (sizeof(uint32_t) * 8));

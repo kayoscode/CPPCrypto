@@ -5,22 +5,23 @@
 
 void testRSANumberLSLLSLR() {
     std::cout << "Testing logical shifts\n";
+
     uint32_t start = 32;
     RSANumber n1(start);
     RSANumber n2 = n1 << 1;
     start <<= 1;
 
-    assert(start == n2.getNum()[ARR_SIZE- 1]);
+    assert(start == n2.getNum()[ARR_SIZE - 1]);
 
     while(start) {
         start >>= 1;
         n2 >>= 1;
-        assert(start == n2.getNum()[ARR_SIZE- 1]);
+        assert(start == n2.getNum()[ARR_SIZE - 1]);
     }
 
     start = 7;
     n2.getNum()[ARR_SIZE - 1] = start;
-    assert(start == n2.getNum()[ARR_SIZE- 1]);
+    assert(start == n2.getNum()[ARR_SIZE - 1]);
 
     for(int i = 0; i < 32; ++i) {
         start <<=1;
@@ -611,6 +612,7 @@ void testRSANumberOperations() {
 
     //test addition and subtraction
     testRSANumberAdditionLogicalOps();
+    std::cout << "her\n";
 
     //test modulus arithmetic
     testRSANumberModulusOperation();
