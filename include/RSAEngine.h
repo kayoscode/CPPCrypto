@@ -50,6 +50,12 @@ class RSANumber {
         static void div(const RSANumber& N, const RSANumber& D, RSANumber& result, RSANumber& mod);
 
         /**
+         * calculates ( @param base ^ @param exp ) mod @param mod
+         * and stores the result in @param result
+         * */
+        static void expMod(RSANumber base, RSANumber exp, const RSANumber& mod, RSANumber& result);
+
+        /**
          * Assignment operator
          * */
         RSANumber& operator=(const RSANumber& num) {
@@ -119,11 +125,11 @@ class RSANumber {
         /**
          * Prints the number in binary but ignores the first chunks which are zero
          * */
-        void printBinary() {
+        void printBinary() const {
             std::cout << getBinary() << "\n";
         }
 
-        std::string getBinary() {
+        std::string getBinary() const {
             std::string ret;
             int highestBit = this->getMostSignificantBitIndex();
 
@@ -139,14 +145,14 @@ class RSANumber {
             return ret;
         }
 
-        void printOctal() {
+        void printOctal() const {
             std::cout << getOctal() << "\n";
         }
 
         /**
          * gets the number as an octal string
          * */
-        std::string getOctal() {
+        std::string getOctal() const {
             std::string ret;
             RSANumber copy(*this);
             RSANumber zero(0), r, eight(8);
@@ -163,11 +169,11 @@ class RSANumber {
             return ret;
         }
 
-        void printDecimal() {
+        void printDecimal() const {
             std::cout << getDecimal() << "\n";
         }
 
-        std::string getDecimal() {
+        std::string getDecimal() const {
             std::string ret;
             RSANumber copy(*this);
             RSANumber zero(0), r, eight(10);
@@ -184,11 +190,11 @@ class RSANumber {
             return ret;
         }
 
-        void printHex() {
+        void printHex() const {
             std::cout << getHex() << "\n";
         }
 
-        std::string getHex() {
+        std::string getHex() const {
             const char* hexToStr = "0123456789ABCDEF";
             std::string ret;
             RSANumber copy(*this);
@@ -206,7 +212,7 @@ class RSANumber {
             return ret;
         }
 
-        void printB64() {
+        void printB64() const {
             //std::cout << 
         }
 

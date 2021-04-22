@@ -512,11 +512,13 @@ void testRSANumberMultiplicationOperaton() {
     expectedResult.setFromBinary("1101010110010101101001101000010011100001000010101001100010000000000");
 
     n1 *= n2;
-    assert(n1 == expectedResult);
+    n1.printBinary();
+    expectedResult.printBinary();
+    assert((n1 == expectedResult) == true);
 
     //test with even larger numbers
-    n1.setFromBinary("11001110101101100100010000111001000100001100110000010100010101110101010011110100101010110011101");
-    n2.setFromBinary("1000000000010000001001001100110111100");
+    n2.setFromBinary("11001110101101100100010000111001000100001100110000010100010101110101010011110100101010110011101");
+    n1.setFromBinary("1000000000010000001001001100110111100");
     expectedResult.setFromBinary("11001110110100000101011001110001010101001100011001110101010111000000100111010101100100010010101100011011111011101011011010001001100");
 
     n1.printBinary();
@@ -528,9 +530,9 @@ void testRSANumberMultiplicationOperaton() {
     result = n1 * n2;
 
     std::cout << "Expected result:\n";
-    expectedResult.printBinary();
+    expectedResult.printHex();
     std::cout << "Actual result: \n";
-    result.printBinary();
+    result.printHex();
 
     assert(result == expectedResult);
 
@@ -543,6 +545,8 @@ void testRSANumberMultiplicationOperaton() {
     assert(expectedResult == ans);
 
     //ensure commutivity
+    (n2 * n1).printHex();
+    (n1 * n2).printHex();
     assert(n1 * n2 == n2 * n1);
 
     //ensure associativity
@@ -597,6 +601,27 @@ void testRSANumberMultiplicationOperaton() {
     expectedResult.printHex();
 }
 
+void testRSANumberModExp() {
+    std::cout << "Testing modular exponentiation\n";
+    RSANumber base;
+    RSANumber exp;
+    RSANumber mod;
+    RSANumber result;
+    RSANumber expectedResult;
+
+    base.setFromBinary("1000111001000001000001111100101001011101000100010100100111011101110111011100011011111101000011011111100000111001000000000010000001001001100110111100");
+    exp.setFromBinary("1010001010100101001000000100100101000101010000100100100100010100001010001010100100100100101010000000100010101001001001010001000010001001001010000101001010101010010101001001010010100100001000101000");
+    mod.setFromBinary("101010111111111111111111111111111111111111110010010100100001111111111111111111111111111111110000001010010111000010101010101011111");
+    expectedResult.setFromBinary("100100111000000101111111000010111100010111010110111011011001110010000110101011101001001110011101101011100101111010100100101001010");
+
+    RSANumber::expMod(base, exp, mod, result);
+    std::cout << "Result\n";
+    result.printDecimal();
+    std::cout << "Expected\n";
+    expectedResult.printDecimal();
+    assert(result == expectedResult);
+}
+
 void testRSANumberOperations() {
     //make sure numbers can be assigned and constructed properly
     testRSAConstAssign();
@@ -612,13 +637,15 @@ void testRSANumberOperations() {
 
     //test addition and subtraction
     testRSANumberAdditionLogicalOps();
-    std::cout << "her\n";
 
     //test modulus arithmetic
-    testRSANumberModulusOperation();
+   testRSANumberModulusOperation();
 
     //test multiplication arithmetic
     testRSANumberMultiplicationOperaton();
+
+    //make sure fast mod expoentiation works properly
+    testRSANumberModExp();
 }
 
 int main() {

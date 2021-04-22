@@ -181,6 +181,21 @@ void RSANumber::div(const RSANumber& N, const RSANumber& D, RSANumber& result, R
     rsaNumberDiv(N, D, result, mod);
 }
 
+void RSANumber::expMod(RSANumber base, RSANumber exp, const RSANumber& mod, RSANumber& result) {
+    result = 1;
+
+    while(exp > 0) {
+        if(exp.getBit(0)) {
+            result *= base;
+            result %= mod;
+        }
+
+        exp >>= 1;
+        base *= base;
+        base %= mod;
+    }
+}
+
 //if there is a faster way of doing this, I don't know of it
 //with the efficient implementations of the copy constructor, assignment operator, shifts, and subtraction, this should be a relatively fast algorithm
 //it tends to be fairly slow (a couple milliseconds) when calculating mod for very very large numbers
@@ -356,10 +371,49 @@ RSANumber& RSANumber::operator^=(const RSANumber& num) {
     return *this;
 }
 
+inline void fasterMult(RSANumber n1, RSANumber n2, RSANumber& ret) {
+    int msn1 = n1.getMostSignificantBitIndex() / 32;
+    int msn2 = n2.getMostSignificantBitIndex() / 32;
+    ret = 0;
+
+    if(msn1 == -1 || msn2 == -1) {
+        return;
+    }
+
+    for(int j = 0; j <= msn1; ++j) {
+        uint32_t overflow = 0;
+        RSANumber intermediary(0);
+
+        for(int i = 0; i <= msn2; ++i) {
+            uint64_t tmp = ((uint64_t)n1[ARR_SIZE - j - 1] * (uint64_t)n2[ARR_SIZE - i - 1]) + (uint64_t)overflow;
+            intermediary[ARR_SIZE - (i + j) - 1] = tmp & 0xFFFFFFFF;
+            overflow = tmp >> 32;
+        }
+
+        intermediary |= RSANumber(overflow) << (32 * (msn2 + 1 + j));
+        ret += intermediary;
+    }
+}
+
+/**
+ * TODO: really, I need multiplication to be as fast as I can get it and the only way to do that is to implement this algorithm!
+inline void rsaNumberMulKaratsuba(RSANumber n1, RSANumber n2, RSANumber& ret) {
+    if(n1.getMostSignificantBitIndex() < 32) {
+        oneDigitMul(n1, n2, ret);
+    }
+    else if(n2.getMostSignificantBitIndex() < 32) {
+        oneDigitMul(n2, n1, ret);
+    }
+}
+*/
+
 /**
  * One of the rare instances where passing by value is more efficient.
  * */
 inline void rsaNumberMul(RSANumber n, RSANumber m, RSANumber& ret) {
+    fasterMult(n, m, ret);
+    /**
+    return;
     int count = 0;
     ret = 0;
 
