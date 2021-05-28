@@ -31,4 +31,4 @@ add_executable(RSATest "${RSATest}")
 target_link_libraries(AESTest ${PROJ_NAME})
 target_link_libraries(RSATest ${PROJ_NAME})
 
-include_directories(${PROJECT_SOURCE_DIR}/./include)
+target_include_directories(${PROJ_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/./include)
