@@ -56,7 +56,7 @@ inline void rsaNumLSL(const RSANumber& num, int c, RSANumber& output) {
 	for(int i = ARR_SIZE - 1; i >= 0; --i) {
         tmp = output.value[i];
         tmp <<= count;
-        output.value[i] = tmp;
+        output.value[i] = (uint32_t)tmp;
         output.value[i] |= overflow;
         overflow = tmp >> (sizeof(uint32_t) * 8);
 	}
@@ -120,12 +120,12 @@ inline void rsaNumAdd(const RSANumber& n1, const RSANumber& n2, RSANumber& dest)
 inline void rsaNumberNegate(const RSANumber n1, RSANumber& dest) {
     //take the compliment and add 1 all in a single step preferably
 	uint32_t carry = 0;
-    uint64_t tmp = (uint64_t)(~n1.value[ARR_SIZE - 1]) + (uint64_t)1;
+    uint64_t tmp = (uint64_t)(~(uint64_t)n1.value[ARR_SIZE - 1]) + (uint64_t)1ULL;
     dest.value[ARR_SIZE - 1] = tmp & 0xFFFFFFFF;
     carry = tmp >> (sizeof(uint32_t) * 8);
 
 	for(int i = ARR_SIZE - 2; i >= 0; --i) {
-		tmp = (uint64_t)(~n1.value[i]) + (uint64_t)carry;
+		tmp = (uint64_t)(~(uint64_t)n1.value[i]) + (uint64_t)carry;
 		dest.value[i] = tmp & 0xFFFFFFFF;
 		carry = tmp >> (sizeof(uint32_t) * 8);
 	}
@@ -137,12 +137,12 @@ inline void rsaNumSub(const RSANumber& n1, const RSANumber& n2, RSANumber& dest)
 	uint32_t carry = 0;
     uint64_t tmp = 0;
 
-    tmp = (uint64_t)(n1.value[ARR_SIZE - 1]) + (uint64_t)(~n2.value[ARR_SIZE - 1]) + (uint64_t)1;
+    tmp = (uint64_t)(n1.value[ARR_SIZE - 1]) + (uint64_t)(~(uint64_t)n2.value[ARR_SIZE - 1]) + (uint64_t)1;
     dest.value[ARR_SIZE - 1] = tmp & 0xFFFFFFFF;
     carry += tmp >> (sizeof(uint32_t) * 8);
 
 	for(int i = ARR_SIZE - 2; i >= 0; --i) {
-		tmp = (uint64_t)n1.value[i] + (uint64_t)(~n2.value[i]) + (uint64_t)carry;
+		tmp = (uint64_t)n1.value[i] + (uint64_t)(~(uint64_t)n2.value[i]) + (uint64_t)carry;
 		dest.value[i] = tmp & 0xFFFFFFFF;
 		carry = tmp >> (sizeof(uint32_t) * 8);
 	}
