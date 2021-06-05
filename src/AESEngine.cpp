@@ -7,7 +7,7 @@
 #if defined(__WIN32) || defined(WIN32) || defined(_WIN32)
     #define USE_AES_HW
     #include <intrin.h>
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__) || defined(__unix) || defined(__APPLE__)
     #include <cpuid.h>
     #define USE_AES_HW
 #endif
