@@ -3,12 +3,10 @@ cmake_minimum_required(VERSION 3.0)
 SET(PROJ_NAME CPPCrypto)
 project(${PROJ_NAME})
 
-if(UNIX)
-    add_compile_options(
-        "-maes"
-        "-msse2"
-    )
-endif()
+add_compile_options(
+    "-maes"
+    "-msse2"
+)
 
 file(GLOB SRC 
     "src/*.cpp"
